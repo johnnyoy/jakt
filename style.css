@@ -108,6 +108,31 @@ html, body { height: 100%; overflow: hidden; font-family: system-ui, sans-serif;
   flex-shrink: 0;
 }
 
+#county-wrap {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+#county-wrap[hidden] { display: none; }
+
+#county-filter {
+  width: 100%;
+  padding: 6px 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 0.8rem;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238b91a3'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+}
+#county-filter:focus { border-color: var(--accent); }
+#county-filter option { background: var(--surface2); }
+
 #result-count {
   padding: 8px 14px;
   font-size: 0.75rem;

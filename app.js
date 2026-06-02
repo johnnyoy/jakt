@@ -16,10 +16,10 @@ const FALLBACK_POLY_URL = 'data/polygons.geojson';
 const POLY_ZOOM_MIN = 9;
 
 const TYPE_META = {
-  innlandsfiske: { label: 'Innlandsfiske', color: '#5b9fd4', slug: 'innlandsfiske', link: 'fiske' },
-  laksefiske:    { label: 'Laksefiske',    color: '#c0533a', slug: 'laksefiske',    link: 'fiske' },
-  smavilt:       { label: 'Småvilt',       color: '#7ab87a', slug: 'smavilt',       link: 'jakt'  },
-  storvilt:      { label: 'Storvilt',      color: '#a0652a', slug: 'storvilt',      link: 'jakt'  },
+  innlandsfiske: { label: 'Innlandsfiske', color: '#5b9fd4', link: 'fiske' },
+  laksefiske:    { label: 'Laksefiske',    color: '#c0533a', link: 'fiske' },
+  smavilt:       { label: 'Småvilt',       color: '#7ab87a', link: 'jakt'  },
+  storvilt:      { label: 'Storvilt',      color: '#a0652a', link: 'jakt'  },
 };
 
 const TYPE_NORM = {
@@ -37,11 +37,13 @@ let allFeatures     = [];
 let allPolyFeatures = [];
 let filteredFeatures = [];
 let activeType      = 'alle';
+let activeFylke     = '';
 let searchQuery     = '';
 let activeMarkerId  = null;
 let activeTilbudsid = null;
-let markerMap       = {};  // objectid → Leaflet marker
-let polyByTilbud    = {};  // tilbudsid → [polygon features]
+let pendingId       = null;  // tilbudsid to select once data is loaded (from URL)
+let markerMap       = {};
+let polyByTilbud    = {};
 let polyLayer       = null;
 let highlightLayer  = null;
 
@@ -79,22 +81,81 @@ const detailContent = document.getElementById('detail-content');
 const resultCount   = document.getElementById('result-count');
 const searchInput   = document.getElementById('search');
 const filterBtns    = document.querySelectorAll('.filter-btn');
+const countyWrap    = document.getElementById('county-wrap');
+const countySelect  = document.getElementById('county-filter');
+
+// ── URL state ─────────────────────────────────────────────────────────────────
+
+function syncURL() {
+  const params = new URLSearchParams();
+  if (activeType !== 'alle')  params.set('filter', activeType);
+  if (activeFylke)            params.set('fylke',  activeFylke);
+  if (searchQuery)            params.set('q',      searchQuery);
+  if (activeTilbudsid)        params.set('id',     activeTilbudsid);
+  const qs = params.toString();
+  history.replaceState(null, '', qs ? '?' + qs : location.pathname);
+}
+
+// Called once before data loads; returns tilbudsid to select after load
+function restoreFromURL() {
+  const params = new URLSearchParams(location.search);
+  const filter = params.get('filter');
+  const fylke  = params.get('fylke');
+  const q      = params.get('q');
+
+  if (filter && TYPE_META[filter]) {
+    activeType = filter;
+    filterBtns.forEach(b => b.classList.toggle('active', b.dataset.type === filter));
+  }
+  if (q) {
+    searchQuery = q;
+    searchInput.value = q;
+  }
+  if (fylke) {
+    activeFylke = fylke;
+  }
+  return params.get('id') || null;
+}
+
+// ── County filter ─────────────────────────────────────────────────────────────
+
+function getFylke(p) {
+  return p.fylkesnavn || p.fylke || p.FYLKESNAVN || p.FYLKE || null;
+}
+
+function buildCountyFilter() {
+  const seen = new Set();
+  allFeatures.forEach(f => {
+    const v = getFylke(f.properties || {});
+    if (v) seen.add(v);
+  });
+  if (!seen.size) return;
+
+  const sorted = [...seen].sort((a, b) => a.localeCompare(b, 'no'));
+  sorted.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    countySelect.appendChild(opt);
+  });
+
+  if (activeFylke) countySelect.value = activeFylke;
+  countyWrap.hidden = false;
+}
 
 // ── Marker icons ─────────────────────────────────────────────────────────────
 
 function makeIcon(typeSlug) {
-  const meta = TYPE_META[typeSlug];
-  const color = meta ? meta.color : '#888';
-  const size = 10, border = 2;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size + border * 2}" height="${size + border * 2}" viewBox="0 0 ${size + border * 2} ${size + border * 2}">
-    <circle cx="${size / 2 + border}" cy="${size / 2 + border}" r="${size / 2}" fill="${color}" stroke="#1a1d23" stroke-width="${border}"/>
+  const color = (TYPE_META[typeSlug] || {}).color || '#888';
+  const size = 10, border = 2, total = size + border * 2;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${total}" height="${total}" viewBox="0 0 ${total} ${total}">
+    <circle cx="${total/2}" cy="${total/2}" r="${size/2}" fill="${color}" stroke="#1a1d23" stroke-width="${border}"/>
   </svg>`;
-  const total = size + border * 2;
   return L.icon({
     iconUrl: 'data:image/svg+xml;base64,' + btoa(svg),
     iconSize: [total, total],
-    iconAnchor: [total / 2, total / 2],
-    popupAnchor: [0, -total / 2],
+    iconAnchor: [total/2, total/2],
+    popupAnchor: [0, -total/2],
   });
 }
 
@@ -134,7 +195,6 @@ async function fetchData() {
 
     allFeatures = (pointResult.value.features || []).filter(f => isActive(f.properties || {}));
 
-    // Polygons are best-effort — degrade gracefully if unavailable
     if (polyResult.status === 'fulfilled') {
       allPolyFeatures = (polyResult.value.features || []).filter(f => isActive(f.properties || {}));
       polyByTilbud = {};
@@ -145,8 +205,16 @@ async function fetchData() {
       });
     }
 
+    buildCountyFilter();
     showSkeleton(false);
     applyFilters();
+
+    // Restore selected area from URL
+    if (pendingId) {
+      const feat = allFeatures.find(f => f.properties?.tilbudsid == pendingId);
+      if (feat) selectFeature(feat, markerMap[feat.properties.objectid]);
+      pendingId = null;
+    }
   } catch (_) {
     showSkeleton(false);
     showError(true);
@@ -167,6 +235,7 @@ function applyFilters() {
     const p = f.properties || {};
     const typeSlug = normaliseType(p.type);
     if (activeType !== 'alle' && typeSlug !== activeType) return false;
+    if (activeFylke && getFylke(p) !== activeFylke) return false;
     if (q && !(p.stedsnavn || '').toLowerCase().includes(q)) return false;
     return true;
   });
@@ -174,6 +243,7 @@ function applyFilters() {
   renderMarkers();
   renderCards();
   renderPolygons();
+  syncURL();
 }
 
 // ── Markers ───────────────────────────────────────────────────────────────────
@@ -249,6 +319,7 @@ function renderPolygons() {
     const p = f.properties || {};
     const typeSlug = normaliseType(p.type);
     if (activeType !== 'alle' && typeSlug !== activeType) return false;
+    if (activeFylke && getFylke(p) !== activeFylke) return false;
     if (q && !(p.stedsnavn || '').toLowerCase().includes(q)) return false;
     return true;
   });
@@ -274,7 +345,6 @@ function renderPolygons() {
 
   if (map.getZoom() >= POLY_ZOOM_MIN) map.addLayer(polyLayer);
 
-  // Re-apply highlight if something is still selected after a filter change
   if (activeTilbudsid) showHighlight(activeTilbudsid);
 }
 
@@ -294,7 +364,6 @@ function clearHighlight() {
   if (highlightLayer) { map.removeLayer(highlightLayer); highlightLayer = null; }
 }
 
-// Show/hide polygon layer based on zoom level
 map.on('zoomend', () => {
   if (!polyLayer) return;
   if (map.getZoom() >= POLY_ZOOM_MIN) {
@@ -328,6 +397,7 @@ function selectFeature(feature, marker) {
   }
 
   showHighlight(p.tilbudsid);
+  syncURL();
 
   const buyPath = meta.link === 'fiske' ? 'fiske' : 'jakt';
   const buyUrl  = `https://www.inatur.no/${buyPath}/${p.tilbudsid}`;
@@ -372,11 +442,17 @@ searchInput.addEventListener('input', () => {
   applyFilters();
 });
 
+countySelect.addEventListener('change', () => {
+  activeFylke = countySelect.value;
+  applyFilters();
+});
+
 detailClose.addEventListener('click', () => {
   detailPanel.hidden = true;
   activeMarkerId  = null;
   activeTilbudsid = null;
   clearHighlight();
+  syncURL();
   document.querySelectorAll('.area-card').forEach(el => el.classList.remove('active'));
 });
 
@@ -384,4 +460,5 @@ retryBtn.addEventListener('click', fetchData);
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 
+pendingId = restoreFromURL();
 fetchData();
