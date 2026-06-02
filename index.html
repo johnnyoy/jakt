@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inatur Kart</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div id="app">
+
+    <header id="topbar">
+      <div id="brand">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+          <circle cx="12" cy="9" r="2.5"/>
+        </svg>
+        <span>Inatur Kart</span>
+      </div>
+
+      <div id="search-wrap">
+        <input
+          id="search"
+          type="search"
+          placeholder="Søk område…"
+          autocomplete="off"
+          spellcheck="false"
+        />
+      </div>
+    </header>
+
+    <div id="main">
+
+      <aside id="sidebar">
+        <nav id="filters" aria-label="Filtrer aktivitetstype">
+          <button class="filter-btn active" data-type="alle">Alle</button>
+          <button class="filter-btn" data-type="innlandsfiske">
+            <span class="dot" style="background:#5b9fd4"></span>Innlandsfiske
+          </button>
+          <button class="filter-btn" data-type="laksefiske">
+            <span class="dot" style="background:#c0533a"></span>Laksefiske
+          </button>
+          <button class="filter-btn" data-type="smavilt">
+            <span class="dot" style="background:#7ab87a"></span>Småvilt
+          </button>
+          <button class="filter-btn" data-type="storvilt">
+            <span class="dot" style="background:#a0652a"></span>Storvilt
+          </button>
+        </nav>
+
+        <div id="result-count"></div>
+
+        <ul id="card-list" role="list" aria-label="Områdeliste"></ul>
+
+        <div id="skeleton" aria-hidden="true">
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+        </div>
+
+        <div id="error-state" hidden>
+          <p>Kunne ikke laste data. Prøv igjen senere.</p>
+          <button id="retry-btn">Prøv igjen</button>
+        </div>
+      </aside>
+
+      <div id="map-wrap">
+        <div id="map"></div>
+
+        <div id="detail-panel" hidden aria-live="polite">
+          <button id="detail-close" aria-label="Lukk panel">✕</button>
+          <div id="detail-content"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

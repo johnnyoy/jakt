@@ -1,0 +1,305 @@
+:root {
+  --bg:        #1a1d23;
+  --surface:   #23272f;
+  --surface2:  #2c3140;
+  --border:    #363c4a;
+  --text:      #e8eaf0;
+  --text-muted:#8b91a3;
+  --accent:    #5b9fd4;
+
+  --fish-inland: #5b9fd4;
+  --fish-salmon: #c0533a;
+  --hunt-small:  #7ab87a;
+  --hunt-large:  #a0652a;
+
+  --topbar-h: 52px;
+  --sidebar-w: 320px;
+  --panel-w:  340px;
+  --radius:   8px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { height: 100%; overflow: hidden; font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); }
+
+/* ── Layout ── */
+#app { display: flex; flex-direction: column; height: 100vh; }
+
+#topbar {
+  height: var(--topbar-h);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 16px;
+  flex-shrink: 0;
+  z-index: 1000;
+}
+
+#brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+#search-wrap { flex: 1; max-width: 380px; }
+
+#search {
+  width: 100%;
+  padding: 7px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--text);
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+#search:focus { border-color: var(--accent); }
+#search::placeholder { color: var(--text-muted); }
+
+#main { display: flex; flex: 1; overflow: hidden; }
+
+/* ── Sidebar ── */
+#sidebar {
+  width: var(--sidebar-w);
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+#filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.filter-btn:hover { border-color: var(--accent); color: var(--text); }
+.filter-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+#result-count {
+  padding: 8px 14px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+
+#card-list {
+  flex: 1;
+  overflow-y: auto;
+  list-style: none;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.area-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.area-card:hover { background: var(--surface2); }
+.area-card.active { background: var(--surface2); border-left: 3px solid var(--accent); padding-left: 11px; }
+
+.card-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-type {
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.card-type.innlandsfiske { color: var(--fish-inland); }
+.card-type.laksefiske    { color: var(--fish-salmon); }
+.card-type.smavilt       { color: var(--hunt-small); }
+.card-type.storvilt      { color: var(--hunt-large); }
+
+/* ── Skeleton ── */
+#skeleton { padding: 8px; }
+.skeleton-card {
+  height: 52px;
+  background: linear-gradient(90deg, var(--surface2) 25%, var(--border) 50%, var(--surface2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: var(--radius);
+  margin-bottom: 6px;
+}
+@keyframes shimmer { to { background-position: -200% 0; } }
+#skeleton[aria-hidden="true"] { display: block; }
+
+/* ── Error state ── */
+#error-state {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+#retry-btn {
+  margin-top: 12px;
+  padding: 8px 20px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+/* ── Map ── */
+#map-wrap { flex: 1; position: relative; overflow: hidden; }
+#map { width: 100%; height: 100%; }
+
+/* ── Detail panel ── */
+#detail-panel {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: var(--panel-w);
+  max-height: calc(100% - 24px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+  overflow-y: auto;
+  z-index: 800;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+#detail-panel[hidden] { display: none; }
+
+#detail-close {
+  position: sticky;
+  top: 0;
+  float: right;
+  margin: 10px 10px 0 0;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+#detail-close:hover { color: var(--text); }
+
+#detail-content { padding: 16px; clear: both; }
+
+.detail-type {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 6px;
+}
+.detail-type.innlandsfiske { color: var(--fish-inland); }
+.detail-type.laksefiske    { color: var(--fish-salmon); }
+.detail-type.smavilt       { color: var(--hunt-small); }
+.detail-type.storvilt      { color: var(--hunt-large); }
+
+.detail-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 14px;
+  line-height: 1.3;
+}
+
+.detail-buy-link {
+  display: block;
+  padding: 10px 18px;
+  background: var(--accent);
+  color: #fff;
+  text-decoration: none;
+  border-radius: 20px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: opacity 0.15s;
+}
+.detail-buy-link:hover { opacity: 0.85; }
+
+/* Leaflet popup dark theme */
+.leaflet-popup-content-wrapper {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+.leaflet-popup-tip { background: var(--surface); }
+.leaflet-popup-content { margin: 12px 14px; font-size: 0.85rem; }
+.popup-name { font-weight: 600; margin-bottom: 4px; }
+.popup-type { font-size: 0.75rem; color: var(--text-muted); }
+
+/* ── Mobile ── */
+@media (max-width: 700px) {
+  #main { flex-direction: column; }
+
+  #sidebar {
+    width: 100%;
+    height: 220px;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  #detail-panel {
+    top: auto;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    width: 100%;
+    max-height: 55%;
+    border-radius: var(--radius) var(--radius) 0 0;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+  }
+
+  #map-wrap { flex: 1; min-height: 0; }
+}
