@@ -20,10 +20,13 @@ jobs:
           curl -sSf \
             "https://inatur.geodataonline.no/arcgis/rest/services/inatur/Open-Inatur/MapServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson&resultRecordCount=15000" \
             -o data/areas.geojson
+          curl -sSf \
+            "https://inatur.geodataonline.no/arcgis/rest/services/inatur/Open-Inatur/MapServer/4/query?where=1%3D1&outFields=*&outSR=4326&f=geojson&resultRecordCount=15000" \
+            -o data/polygons.geojson
 
       - name: Commit if changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/areas.geojson
+          git add data/areas.geojson data/polygons.geojson
           git diff --staged --quiet || (git commit -m "chore: refresh area data" && git push)
